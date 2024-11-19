@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SO-LE</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #839BAA;
+
+        }
+
+
+
+        .background-image {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        .rotating-image {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .background-image img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .rotating-image img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .start-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 3;
+        }
+
+        .start-message.hidden {
+            display: none;
+        }
+
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+
+
+
+        
+    /* 既存のスタイルはそのままで、以下を追加 */
+    .indicator-triangle {
+            position: absolute;
+            top: 10%;  /* 上からの位置 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;   /* 三角形の幅 */
+            height: 40px;  /* 三角形の高さ */
+            z-index: 3;
+        }
+
+        .indicator-triangle svg {
+            width: 100%;
+            height: 100%;
+        }
+
+
+        /* コンテナの位置を少し下げて、上部に余白を作る */
+        .container {
+            position: relative;
+            width: min(90vw, 90vh);
+            height: min(90vw, 90vh);
+            max-width: 600px;
+            max-height: 600px;
+            margin-top: 10px;  /* 上部に余白を追加 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="indicator-triangle">
+        <svg viewBox="0 0 20 40" fill="none">
+            <path d="M1 1 L19 1 L10 39 Z" 
+                  stroke="black" 
+                  stroke-width="2" 
+                  fill="none"/>
+        </svg>
+    </div>
+
+    <div class="container">
+        <div class="background-image">
+            <img src="/assets/img/SOLE-back.png" alt="Background">
+        </div>
+        <div class="rotating-image">
+            <img src="/assets/img/SOLE.png" alt="SOLE">
+        </div>
+    </div>
+    <div class="start-message">クリックして開始</div>
+    <div class="debug-info"></div>
+    <audio id="bgMusic" src="/assets/audio/himorogi wanderer.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rotatingElement = document.querySelector('.rotating-image');
+            const audio = document.getElementById('bgMusic');
+            const startMessage = document.querySelector('.start-message');
+            const debugInfo = document.querySelector('.debug-info');
+            let isStarted = false;
+            let startTime;
+
+            // デフォルトの背景色
+            // const DEFAULT_COLOR = "#D0DDE6";
+            const DEFAULT_COLOR = "#839BAA";
+
+            // 角度と色の設定
+            // 形式: [開始角度, 終了角度, [...色の配列]]
+            // 国旗の色データ
+            const angleColorMaps = [
+                // ブラジル
+                [53, 70, ["#002776", "#009739", "#FFFFFF", "#FEDF00"]], // 青、緑、白、黄
+
+                // コロンビア
+                [70, 75, ["#FFD100", "#003893", "#CE1126"]], // 黄、青、赤
+
+                // エクアドル
+                [75, 81, ["#FFD100", "#F4C430", "#8B4513", "#CE1126", "#009739", "#003893", "#00BFFF", "#FFFFFF", "#808080"]],
+                [91, 93, ["#FFD100", "#F4C430", "#8B4513", "#CE1126", "#009739", "#003893", "#00BFFF", "#FFFFFF", "#808080"]], 
+
+
+                // キリバス
+                [157, 159, ["#FFFFFF", "#FFD700", "#FF0000", "#0033A0", "#000000"]], // 白、黄、赤、青、黒
+
+                // アメリカ
+                [160, 162, ["#FFFFFF", "#B22234", "#3C3B6E"]], // 白、赤、青
+
+                // インドネシア
+                [230, 231, ["#FFFFFF", "#FF0000"]], // 白、赤
+                [240, 241, ["#FFFFFF", "#FF0000"]], // 白、赤 
+                [243, 252, ["#FFFFFF", "#FF0000"]], // 白、赤 
+                [246, 263, ["#FFFFFF", "#FF0000"]], // 白、赤 
+            
+                // モルディブ
+                [287, 289, ["#FFFFFF", "#007E3A", "#D21034"]], // 白、緑、赤
+
+                // ソマリア
+                [316, 319, ["#FFFFFF", "#4189DD"]], // 白、青
+
+                // ケニア
+                [319, 326, ["#FFFFFF", "#006600", "#FF0000", "#000000"]], // 白、緑、赤、黒
+
+                // ウガンダ
+                [326, 330, ["#FFFFFF", "#FFCD00", "#FF0000", "#000000"]], // 白、黄、赤、黒
+
+                // コンゴ民主共和国
+                [330, 342, ["#FFD100", "#007FFF", "#CE1126"]], // 黄、青、赤
+
+                // コンゴ共和国
+                [342, 346, ["#FFD100", "#009543", "#DC241F"]], // 黄、緑、赤
+
+                // ガボン
+                [346, 351, ["#FFD100", "#009739", "#3A75C4"]], // 黄、緑、青
+
+                // サントメ・プリンシペ
+                [354, 356, ["#FFD100", "#12AD2B", "#FF0000", "#000000", "#FFFFFF"]], // 黄、緑、赤、黒、白
+            ];
+
+
+            function getCurrentColors(angle) {
+                // 360度を超える角度を0-360の範囲に正規化
+                const normalizedAngle = angle % 360;
+                
+                // 現在の角度に対応する色の配列を検索
+                const colorSet = angleColorMaps.find(([start, end]) => 
+                    normalizedAngle >= start && normalizedAngle <= end
+                );
+
+                // 対応する角度範囲がある場合はその色を返し、ない場合はデフォルト色を返す
+                return colorSet ? colorSet[2] : [DEFAULT_COLOR];
+            }
+
+            function updateBackgroundColor(rotation) {
+                const colors = getCurrentColors(rotation);
+
+                if (colors.length === 1) {
+                    // 単色の場合
+                    document.body.style.backgroundImage = 'none';
+                    document.body.style.background = colors[0];
+                } else {
+                    // 複数色の場合はグラデーションを作成
+                    // 各色を均等に配置
+                    const gradientStops = colors.map((color, index, array) => {
+                        const position = (index * 100) / (array.length - 1); // 均等配置
+                        return `${color} ${position}%`;
+                    }).join(', ');
+                    document.body.style.backgroundColor = 'transparent';
+                    document.body.style.background = `linear-gradient(60deg, ${gradientStops})`;
+                }
+
+                // デバッグ情報を更新
+                debugInfo.textContent = `角度: ${Math.floor(rotation % 360)}度`;
+            }
+
+            function startRotationAndMusic() {
+                if (isStarted) return;
+                isStarted = true;
+                startMessage.classList.add('hidden');
+                startTime = Date.now();
+
+                audio.currentTime = 0;
+                audio.play().catch(error => console.error('Audio playback failed:', error));
+
+                function updateRotation() {
+                    const currentTime = Date.now();
+                    const elapsedTime = currentTime - startTime;
+                    const rotation = (elapsedTime / 180000) * 360;
+                    
+                    rotatingElement.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+                    updateBackgroundColor(rotation);
+
+                    if (Math.floor((rotation - 1) / 360) < Math.floor(rotation / 360)) {
+                        audio.currentTime = 0;
+                        audio.play().catch(error => console.error('Audio playback failed:', error));
+                    }
+
+                    requestAnimationFrame(updateRotation);
+                }
+
+                requestAnimationFrame(updateRotation);
+            }
+
+            startMessage.addEventListener('click', startRotationAndMusic);
+
+            document.querySelectorAll('img').forEach(img => {
+                img.onerror = function() {
+                    console.error('Image failed to load:', this.src);
+                };
+            });
+
+            audio.onerror = function() {
+                console.error('Audio failed to load');
+            };
+        });
+    </script>
+</body>
+</html>

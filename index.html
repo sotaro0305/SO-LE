@@ -1,0 +1,505 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SO-LE</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #839BAA;
+            font-family: Arial, sans-serif;
+            overflow-x: hidden; /* 横スクロールバーを防ぐ */
+        }
+
+
+        /* Layout Components */
+        .main-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 50vh;
+            padding: 10vh 5vh 10px 5vh; /* Adjusted for better responsiveness */
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
+        }
+
+        .container-wrapper {
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Rotating Elements */
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .background-image,
+        .rotating-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: 5px;
+        }
+
+
+        .rotating-image {
+            width: 40%;
+            height: 40%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s linear;
+        }
+
+        .background-image img,
+        .rotating-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Triangle Indicator */
+        .indicator-triangle {
+            position: absolute;
+            top: -10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5%;
+            max-width: 20px;
+
+        }
+
+        .control-section,
+        .content-section {
+            width: 90%; /* 親要素いっぱいの幅 */
+            max-width: 600px; /* 最大幅を制限 */
+            margin: 0 auto; /* 中央揃え */
+            padding: 10px; /* 十分なパディング */
+            box-sizing: border-box; /* パディングを含めた計算 */
+            display: flex;
+            flex-direction: column; /* 縦方向に配置 */
+            align-items: center; /* 中央揃え */
+            overflow-x: hidden; /* 横方向のオーバーフローを防止 */
+        }
+
+        .content-section {
+
+            margin-bottom: 90vh; /* 中央揃え */
+
+        }
+
+        .control-section > *,
+        .content-section > * {
+            margin: 0 auto;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Play/Pause Button */
+        .play-pause-button {
+            width: 60px;
+            height: 60px;
+            background: rgba(254, 253, 253, 0.9);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease;
+        }
+
+        .play-pause-button:hover {
+            transform: scale(1.1);
+            background:rgba(254, 253, 253, 0.9);
+        }
+
+        /* Answer and Hints Containers */
+        .answer-container,
+        .hints-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            backdrop-filter: blur(10px);
+            background: rgba(254, 253, 253, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Form Elements */
+        .answer-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #4A5568;
+            border-radius: 8px;
+            font-size: 1.1em;
+            background: rgba(255, 255, 255, 0.8);
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .answer-input:focus {
+            border-color: #667EEA;
+            outline: none;
+        }
+
+        /* Buttons */
+        .submit-button,
+        .hints-button {
+            width: 100%;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            color:  rgba(255, 255, 255, 0.8);
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+            margin-bottom: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        .submit-button:hover,
+        .hints-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .hints-list {
+            width: 100%; /* 幅を固定 */
+            display: none; /* 初期状態で非表示 */
+            flex-direction: column;
+            gap: 10px;
+            box-sizing: border-box;
+            opacity: 0; /* 初期状態で透明 */
+            transition: opacity 0.3s ease, transform 0.3s ease; /* アニメーション追加 */
+            transform: scaleY(0); /* 初期状態で高さゼロ */
+            transform-origin: top; /* 上端からアニメーション */
+        }
+
+        .hints-list.visible {
+            display: flex;
+            opacity: 1; /* 表示 */
+            transform: scaleY(1); /* 高さを元に戻す */
+        }
+
+        .hint-item {
+            width: 100%; /* 親要素の幅に合わせる */
+            padding: 15px; /* 内側の余白 */
+            border-radius: 8px; /* 角丸 */
+            background: rgba(255, 255, 255, 0.8); /* 背景色 */
+            box-shadow: 0 4px 12px rgba(31, 38, 135, 0.1); /* 影効果 */
+            cursor: pointer; /* ポインター表示 */
+            transition: transform 0.3s ease; /* ホバー時のアニメーション */
+            box-sizing: border-box; /* パディングを含めて幅を計算 */
+        }
+
+
+        .hint-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .hint-content {
+            display: none;
+            padding: 15px;
+            background: rgba(247, 250, 252, 0.8);
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+
+        .hint-content.visible {
+            display: block;
+        }
+
+        .background-color {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .question-text {
+            text-align: center; /* 中央揃え */
+            font-size: 3em; /* デフォルトの文字サイズ */
+            font-weight: 600; /* 太めの文字 */
+            color: #FEFDFD; /* 希望の文字色 */
+            margin: 0; /* デフォルトの余白をリセット */
+            padding: 0; /* 必要ならパディングもリセット */
+        }
+
+
+        /* スマホ画面対応 */
+        @media (max-width: 768px) {
+            .question-text {
+                font-size: 2.3em; /* 小さい画面では文字サイズを縮小 */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .question-text {
+                font-size: 2em; /* さらに小さい画面ではさらに縮小 */
+            }
+        }
+
+        .question-text p {
+            margin: 0px 0 20px 0; /* デフォルトの余白を削除 */
+            padding: 0; /* パディングも削除 */
+        }
+
+        .hint-item h3 {
+            margin: 0px 0 0px 0; /* デフォルトの余白を削除 */
+            padding: 0; /* パディングも削除 */
+        }
+    </style>
+</head>
+
+
+<body>
+    <div class="background-color"></div>
+    <div class="main-section">
+        <div class="container-wrapper">
+            <div class="indicator-triangle">
+                <svg viewBox="0 0 20 40" fill="none">
+                    <path d="M1 1 L19 1 L10 39 Z" stroke="black" stroke-width="2" fill="none"/>
+                </svg>
+            </div>
+            <div class="container">
+                <div class="background-image">
+                    <img src="./assets/img/SOLE-back.png" alt="Background">
+                </div>
+                <div class="rotating-image">
+                    <img src="./assets/img/SOLE.png" alt="SOLE">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-section">
+        <button class="play-pause-button">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="content-section">
+            <!-- 問題文を表示 -->
+        <div class="question-text">
+            <p>Where does the center of the record point to?</p>
+        </div>
+        <div class="answer-container">
+            <input type="text" class="answer-input" placeholder="解答を入力してください">
+            <button class="submit-button">解答を確認</button>
+        </div>
+
+        <div class="hints-container">
+            <button class="hints-button">手がかり</button>
+            <div class="hints-list">
+                <div class="hint-item">
+                    <h3>手がかり #1</h3>
+                    <div class="hint-content">
+                        最初の出会いの場所を思い出してください。その建物の形には、大切なメッセージが隠されているかもしれません。
+                    </div>
+                </div>
+                <div class="hint-item">
+                    <h3>手がかり #2</h3>
+                    <div class="hint-content">
+                        回転する度に変化する色には、それぞれ意味があります。国旗の色が示す意味を考えてみましょう。
+                    </div>
+                </div>
+                <div class="hint-item">
+                    <h3>手がかり #3</h3>
+                    <div class="hint-content">
+                        流れる音楽には特別な意味が込められています。よく聴いてみると、何かのパターンが見えてくるかもしれません。
+                    </div>
+                </div>
+                <div class="hint-item">
+                    <h3>手がかり #4</h3>
+                    <div class="hint-content">
+                        一周にかかる時間は偶然ではありません。その数字の持つ意味を考えてみましょう。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="debug-info"></div>
+    <audio id="bgMusic" src="./assets/audio/himorogi wanderer.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rotatingElement = document.querySelector('.rotating-image');
+            const audio = document.getElementById('bgMusic');
+            const debugInfo = document.querySelector('.debug-info');
+            const playPauseButton = document.querySelector('.play-pause-button');
+            const playPauseIcon = playPauseButton.querySelector('svg');
+        
+            let isPlaying = false;
+            let rotation = 0;
+            let lastTimestamp = null;
+            let animationFrameId = null;
+        
+            const DEFAULT_COLOR = "#839BAA";
+            const angleColorMaps = [
+                [53, 70, ["#002776", "#009739", "#FFFFFF", "#FEDF00"]],
+                [70, 75, ["#FFD100", "#003893", "#CE1126"]],
+                [75, 81, ["#FFD100", "#F4C430", "#8B4513", "#CE1126", "#009739", "#003893", "#00BFFF", "#FFFFFF", "#808080"]],
+                [91, 93, ["#FFD100", "#F4C430", "#8B4513", "#CE1126", "#009739", "#003893", "#00BFFF", "#FFFFFF", "#808080"]],
+                [157, 159, ["#FFFFFF", "#FFD700", "#FF0000", "#0033A0", "#000000"]],
+                [160, 162, ["#FFFFFF", "#B22234", "#3C3B6E"]],
+                [230, 231, ["#FFFFFF", "#FF0000"]],
+                [240, 241, ["#FFFFFF", "#FF0000"]],
+                [243, 252, ["#FFFFFF", "#FF0000"]],
+                [246, 263, ["#FFFFFF", "#FF0000"]],
+                [287, 289, ["#FFFFFF", "#007E3A", "#D21034"]],
+                [316, 319, ["#FFFFFF", "#4189DD"]],
+                [319, 326, ["#FFFFFF", "#006600", "#FF0000", "#000000"]],
+                [326, 330, ["#FFFFFF", "#FFCD00", "#FF0000", "#000000"]],
+                [330, 342, ["#FFD100", "#007FFF", "#CE1126"]],
+                [342, 346, ["#FFD100", "#009543", "#DC241F"]],
+                [346, 351, ["#FFD100", "#009739", "#3A75C4"]],
+                [354, 356, ["#FFD100", "#12AD2B", "#FF0000", "#000000", "#FFFFFF"]]
+            ];
+        
+            function getCurrentColors(angle) {
+                const normalizedAngle = angle % 360;
+                const colorSet = angleColorMaps.find(([start, end]) => 
+                    normalizedAngle >= start && normalizedAngle <= end
+                );
+                return colorSet ? colorSet[2] : [DEFAULT_COLOR];
+            }
+        
+            function updateBackgroundColor(rotation) {
+                const colors = getCurrentColors(rotation);
+                const backgroundElement = document.querySelector('.background-color');
+        
+                if (colors.length === 1) {
+                    backgroundElement.style.backgroundImage = 'none';
+                    backgroundElement.style.backgroundColor = colors[0];
+                } else {
+                    const gradientStops = colors.map((color, index, array) => {
+                        const position = (index * 100) / (array.length - 1);
+                        return `${color} ${position}%`;
+                    }).join(', ');
+                    backgroundElement.style.backgroundColor = 'transparent';
+                    backgroundElement.style.backgroundImage = `linear-gradient(90deg, ${gradientStops})`;
+                }
+        
+                debugInfo.textContent = `角度: ${Math.floor(rotation % 360)}度`;
+            }
+        
+            function updatePlayPauseIcon(isPlaying) {
+                playPauseIcon.innerHTML = isPlaying
+                    ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'
+                    : '<path d="M8 5v14l11-7z"/>';
+            }
+        
+            function animate(timestamp) {
+                if (!lastTimestamp) lastTimestamp = timestamp;
+
+                if (isPlaying) {
+                    const deltaTime = timestamp - lastTimestamp;
+                    rotation += (deltaTime / 180000) * 360; // 時間に応じて回転を加算
+
+                    // 回転を適用
+                    rotatingElement.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+                    
+                    // 背景色の更新
+                    updateBackgroundColor(rotation);
+
+                    // 音楽の再生ループを確認
+                    if (audio.currentTime >= audio.duration) {
+                        audio.currentTime = 0;
+                        audio.play();
+                    }
+                    
+
+                    // 次のアニメーションフレームをリクエスト
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+                lastTimestamp = timestamp;
+            }
+
+        
+            function togglePlayPause() {
+                isPlaying = !isPlaying;
+                updatePlayPauseIcon(isPlaying);
+        
+                if (isPlaying) {
+                    audio.play();
+                    lastTimestamp = null;
+                    animationFrameId = requestAnimationFrame(animate);
+                } else {
+                    audio.pause();
+                    cancelAnimationFrame(animationFrameId);
+                }
+            }
+        
+            playPauseButton.addEventListener('click', togglePlayPause);
+        
+            // ヒント機能
+            const hintsButton = document.querySelector('.hints-button');
+            const hintsList = document.querySelector('.hints-list');
+            const hintItems = document.querySelectorAll('.hint-item');
+        
+            hintsButton.addEventListener('click', () => {
+                hintsList.classList.toggle('visible');
+                hintsButton.textContent = hintsList.classList.contains('visible') 
+                    ? '手がかり' 
+                    : '手がかり';
+            });
+        
+            hintItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const content = item.querySelector('.hint-content');
+                    content.classList.toggle('visible');
+                });
+            });
+        
+            // 解答機能
+            const submitButton = document.querySelector('.submit-button');
+            const answerInput = document.querySelector('.answer-input');
+        
+            submitButton.addEventListener('click', () => {
+                const answer = answerInput.value.trim();
+                if (answer === '正解の文字列') {
+                    alert('正解です！');
+                } else {
+                    alert('不正解です。もう一度考えてみましょう。');
+                }
+            });
+        
+            // エラーハンドリング
+            document.querySelectorAll('img').forEach(img => {
+                img.onerror = () => console.error('Image failed to load:', img.src);
+            });
+        
+            audio.onerror = () => console.error('Audio failed to load');
+        });
+
+
+
+    </script>
+</body>
+</html>
